@@ -1,0 +1,85 @@
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8081:8081"        # 主机端口映射到容器端口
+    # 添加环境变量，让Docker容器可以连接到主机上的MySQL
+    # 使用主机的IP地址（172.17.32.1）而不是host.docker.internal
+    environment:
+      # 改为连接Docker内的MySQL服务（使用IP地址避免DNS解析问题）
+      SPRING_DATASOURCE_URL: jdbc:mysql://172.19.0.2:3306/pathfinding?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&allowMultiQueries=true&useLegacyDatetimeCode=false
+      # 使用MySQL容器创建的应用用户
+      SPRING_DATASOURCE_USERNAME: pathfinding_user
+      SPRING_DATASOURCE_PASSWORD: your_db_password
+      # Redis连接配置（使用服务名redis）
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+    # 其他后端配置...
+    volumes:
+      - ./backend/src:/app/src                     # 同步Java源代码
+      - ./backend/target:/app/target               # 同步构建输出
+      - ./backend/src/main/resources:/app/resources # 同步配置文件
+
+
+    depends_on:
+      mysql:
+          condition: service_healthy
+      redis:
+          condition: service_healthy
+
+
+
+  frontend:
+    build: ./vue-admin-template-master
+    ports:
+      - "9528:9528"        # 关键：主机9528映射到容器9528
+    volumes:
+      - ./vue-admin-template-master:/app           # 同步所有源代码
+      - /app/node_modules                          # 保护 node_modules
+      - ./vue-admin-template-master/.env.development:/app/.env.development  # 同步环境变量文件
+    depends_on:
+      - backend
+    # 环境变量：如果还需要在容器内设置 VUE_APP_BASE_API，可以在这里写，但通常已经写在 .env.development 里了
+    environment:
+      - VUE_APP_BASE_API=/api   # 确保覆盖（可选）
+
+  mysql:
+    image: mysql:8.0
+    container_name: pathfinding-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: your_root_password
+      MYSQL_DATABASE: pathfinding
+      MYSQL_USER: pathfinding_user
+      MYSQL_PASSWORD: your_db_password
+      MYSQL_ROOT_HOST: '%'  # 允许root用户从任何主机连接
+    command: 
+      - --bind-address=0.0.0.0
+      - --skip-name-resolve
+    ports:
+      - "3307:3306"  # 主机3307端口映射到容器3306端口，避免和本机MySQL冲突
+    volumes:
+      - mysql_data:/var/lib/mysql  # 数据持久化
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql  # 初始化脚本
+    healthcheck: # 健康检查（云原生重要特性）
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      timeout: 20s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: pathfinding-redis
+    ports:
+      - "6379:6379"  # 主机6379端口映射到容器6379端口
+    volumes:
+      - redis_data:/data  # Redis数据持久化
+    command: redis-server --appendonly yes  # 开启AOF持久化
+    healthcheck: # Redis健康检查
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  mysql_data:  # MySQL数据持久化卷
+  redis_data:  # Redis数据持久化卷

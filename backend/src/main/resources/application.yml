@@ -1,0 +1,70 @@
+server:
+  port: 8081  # 服务器端口
+
+spring:
+  # 允许Bean定义覆盖
+  main:
+    allow-bean-definition-overriding: true
+  
+  # 数据库配置
+  application:
+    name: backend  # 从 .properties 迁移过来的
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/pathfinding?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&allowMultiQueries=true&useLegacyDatetimeCode=false
+    username: root
+    password: your_db_password
+
+  # Redis配置
+  redis:
+    host: localhost      # Redis服务器地址
+    port: 6379           # Redis端口，默认6379
+    password:            # Redis密码，如果没有密码就留空
+    database: 0          # Redis数据库索引，默认0
+    timeout: 2000ms      # 连接超时时间
+    lettuce:
+      pool:
+        max-active: 8    # 连接池最大连接数
+        max-idle: 8      # 连接池最大空闲连接数
+        min-idle: 0      # 连接池最小空闲连接数
+        max-wait: -1ms   # 连接池最大阻塞等待时间，-1表示无限等待
+
+  # JPA/Hibernate 配置（如果需要）
+  jpa:
+    hibernate:
+      ddl-auto: update  # 自动更新表结构
+    show-sql: true  # 控制台显示SQL
+    properties:
+      hibernate:
+        format_sql: true  # 格式化SQL输出
+
+# MyBatis-Plus 配置
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true  # 开启驼峰命名自动映射
+    # 控制台输出SQL（开发时开启，生产环境关闭）
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  # 实体类扫描包
+  type-aliases-package: com.ldk.backend.entity
+  # 全局配置
+  global-config:
+    db-config:
+      id-type: auto  # 主键自增
+      logic-delete-field: is_deleted  # 逻辑删除字段名
+      logic-delete-value: 1  # 已删除值
+      logic-not-delete-value: 0  # 未删除值
+
+# SpringDoc OpenAPI 配置
+springdoc:
+  api-docs:
+    enabled: true
+    path: /api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+  paths-to-match: /api/**
+
+# JWT配置
+jwt:
+  secret: your-jwt-secret-key-change-in-production  # JWT签名密钥，生产环境应该使用更复杂的密钥
+  expiration: 86400000  # token过期时间（毫秒），默认24小时

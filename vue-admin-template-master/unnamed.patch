@@ -1,0 +1,358 @@
+Index: src/views/visualization/components/GridBoard.vue
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/views/visualization/components/GridBoard.vue b/src/views/visualization/components/GridBoard.vue
+--- a/src/views/visualization/components/GridBoard.vue	
++++ b/src/views/visualization/components/GridBoard.vue	(date 1768646886007)
+@@ -3,9 +3,347 @@
+ </script>
+ 
+ <template>
+-
++  <div class="grid-board">
++    <!-- 网格容器 -->
++    <div class="grid-container" ref="gridContainer">
++      <!-- 网格画布 -->
++      <div class="grid-canvas" :style="gridStyle">
++        <!-- 网格行 -->
++        <div
++          v-for="row in gridRows"
++          :key="row"
++          class="grid-row"
++        >
++          <!-- 网格单元格 -->
++          <div
++            v-for="col in gridCols"
++            :key="col"
++            class="grid-cell"
++            :class="getCellClass(row, col)"
++            @click="handleCellClick(row, col)"
++            @mouseenter="handleCellHover(row, col)"
++          >
++            <!-- 单元格内容 -->
++            <div class="cell-content">
++              <template v-if="isStartPoint(row, col)">
++                <i class="el-icon-location cell-icon start-icon"></i>
++                <span class="cell-label">起点</span>
++              </template>
++              <template v-else-if="isEndPoint(row, col)">
++                <i class="el-icon-location cell-icon end-icon"></i>
++                <span class="cell-label">终点</span>
++              </template>
++              <template v-else-if="isObstacle(row, col)">
++                <i class="el-icon-close cell-icon obstacle-icon"></i>
++              </template>
++              <template v-else-if="isVisited(row, col)">
++                <div class="visited-dot"></div>
++              </template>
++              <template v-else-if="isPath(row, col)">
++                <div class="path-dot"></div>
++              </template>
++            </div>
++          </div>
++        </div>
++      </div>
++    </div>
++
++    <!-- 图例 -->
++    <div class="legend">
++      <div class="legend-item">
++        <div class="legend-color start-color"></div>
++        <span>起点</span>
++      </div>
++      <div class="legend-item">
++        <div class="legend-color end-color"></div>
++        <span>终点</span>
++      </div>
++      <div class="legend-item">
++        <div class="legend-color obstacle-color"></div>
++        <span>障碍</span>
++      </div>
++      <div class="legend-item">
++        <div class="legend-color visited-color"></div>
++        <span>已访问</span>
++      </div>
++      <div class="legend-item">
++        <div class="legend-color path-color"></div>
++        <span>路径</span>
++      </div>
++    </div>
++  </div>
+ </template>
++
++<script>
++export default {
++  name: 'GridBoard',
++  props: {
++    // 网格配置
++    gridRows: {
++      type: Number,
++      default: 15
++    },
++    gridCols: {
++      type: Number,
++      default: 15
++    },
++    showGridLines: {
++      type: Boolean,
++      default: true
++    },
++
++    // 网格数据
++    startPoint: {
++      type: Object,
++      default: () => ({ x: 2, y: 2 })
++    },
++    endPoint: {
++      type: Object,
++      default: () => ({ x: 8, y: 8 })
++    },
++    obstacles: {
++      type: Array,
++      default: () => []
++    },
++    visitedCells: {
++      type: Array,
++      default: () => []
++    },
++    pathCells: {
++      type: Array,
++      default: () => []
++    },
++
++    // 编辑模式
++    editMode: {
++      type: String,
++      default: 'start'
++    }
++  },
++  computed: {
++    gridStyle() {
++      return {
++        gridTemplateColumns: `repeat(${this.gridCols}, 1fr)`,
++        gridTemplateRows: `repeat(${this.gridRows}, 1fr)`
++      }
++    }
++  },
++  methods: {
++    // 单元格点击事件
++    handleCellClick(row, col) {
++      this.$emit('cell-click', { row, col, mode: this.editMode })
++    },
++
++    handleCellHover(row, col) {
++      this.$emit('cell-hover', { row, col })
++    },
++
++    // 单元格状态判断方法
++    isStartPoint(row, col) {
++      return this.startPoint.x === row && this.startPoint.y === col
++    },
++
++    isEndPoint(row, col) {
++      return this.endPoint.x === row && this.endPoint.y === col
++    },
++
++    isObstacle(row, col) {
++      return this.obstacles.some(obs => obs.x === row && obs.y === col)
++    },
++
++    isVisited(row, col) {
++      return this.visitedCells.some(cell => cell.x === row && cell.y === col)
++    },
++
++    isPath(row, col) {
++      return this.pathCells.some(cell => cell.x === row && cell.y === col)
++    },
++
++    getCellClass(row, col) {
++      const classes = []
++      if (this.isStartPoint(row, col)) classes.push('start-cell')
++      if (this.isEndPoint(row, col)) classes.push('end-cell')
++      if (this.isObstacle(row, col)) classes.push('obstacle-cell')
++      if (this.isVisited(row, col)) classes.push('visited-cell')
++      if (this.isPath(row, col)) classes.push('path-cell')
++      if (this.showGridLines) classes.push('grid-border')
++      return classes
++    }
++  }
++}
++</script>
++
++<style lang="scss" scoped>
++.grid-board {
++  height: 100%;
++  display: flex;
++  flex-direction: column;
++}
++
++.grid-container {
++  flex: 1;
++  overflow: auto;
++  border: 1px solid #EBEEF5;
++  border-radius: 4px;
++  background-color: #fafafa;
++  margin-bottom: 20px;
++}
++
++.grid-canvas {
++  display: grid;
++  width: 100%;
++  height: 100%;
++  min-height: 500px;
++}
++
++.grid-row {
++  display: contents;
++}
++
++.grid-cell {
++  position: relative;
++  display: flex;
++  align-items: center;
++  justify-content: center;
++  cursor: pointer;
++  transition: all 0.2s;
++
++  &:hover {
++    background-color: rgba(64, 158, 255, 0.1);
++    z-index: 1;
++  }
++
++  &.grid-border {
++    border: 1px solid #e0e0e0;
++  }
++
++  &.start-cell {
++    background-color: #67c23a;
++
++    &:hover {
++      background-color: #5daf34;
++    }
++  }
++
++  &.end-cell {
++    background-color: #f56c6c;
++
++    &:hover {
++      background-color: #e64c4c;
++    }
++  }
++
++  &.obstacle-cell {
++    background-color: #303133;
++
++    &:hover {
++      background-color: #262626;
++    }
++  }
++
++  &.visited-cell {
++    background-color: #409eff;
+ 
+-<style scoped lang="scss">
++    &:hover {
++      background-color: #3a8ee6;
++    }
++  }
+ 
++  &.path-cell {
++    background-color: #e6a23c;
++
++    &:hover {
++      background-color: #d19236;
++    }
++  }
++}
++
++.cell-content {
++  display: flex;
++  flex-direction: column;
++  align-items: center;
++  justify-content: center;
++  width: 100%;
++  height: 100%;
++}
++
++.cell-icon {
++  font-size: 20px;
++  color: white;
++
++  &.start-icon {
++    color: white;
++  }
++
++  &.end-icon {
++    color: white;
++  }
++
++  &.obstacle-icon {
++    color: white;
++  }
++}
++
++.cell-label {
++  font-size: 10px;
++  color: white;
++  margin-top: 2px;
++}
++
++.visited-dot {
++  width: 12px;
++  height: 12px;
++  border-radius: 50%;
++  background-color: #409eff;
++}
++
++.path-dot {
++  width: 12px;
++  height: 12px;
++  border-radius: 50%;
++  background-color: #e6a23c;
++}
++
++.legend {
++  display: flex;
++  justify-content: center;
++  gap: 20px;
++  padding: 10px;
++  background-color: #f5f7fa;
++  border-radius: 4px;
++
++  .legend-item {
++    display: flex;
++    align-items: center;
++    gap: 8px;
++    font-size: 12px;
++    color: #606266;
++  }
++
++  .legend-color {
++    width: 16px;
++    height: 16px;
++    border-radius: 2px;
++
++    &.start-color {
++      background-color: #67c23a;
++    }
++
++    &.end-color {
++      background-color: #f56c6c;
++    }
++
++    &.obstacle-color {
++      background-color: #303133;
++    }
++
++    &.visited-color {
++      background-color: #409eff;
++    }
++
++    &.path-color {
++      background-color: #e6a23c;
++    }
++  }
++}
+ </style>
